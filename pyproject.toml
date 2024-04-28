@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "substack-to-note"
+version = "1.0.0"
+description = "A script to convert Substack posts to note.com"
+authors = ["Daisuke Shimamoto <diskshima@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+beautifulsoup4 = "^4.12.3"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
