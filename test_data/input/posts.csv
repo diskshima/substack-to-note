@@ -1,0 +1,2 @@
+post_id,post_date,is_published,email_sent_at,inbox_sent_at,type,audience,title,subtitle,podcast_url
+test01,2024-04-21T06:53:11.341Z,true,2024-04-21T06:53:11.408Z,2024-04-21T06:53:11.408Z,newsletter,everyone,テスト01
