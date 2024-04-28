@@ -1,27 +1,31 @@
 import argparse
 import csv
+import html
 import os
-import requests
 import pytz
+import requests
+from bs4 import BeautifulSoup
 from urllib.parse import quote
 from datetime import datetime
-from bs4 import BeautifulSoup
-from xml.etree import ElementTree as ET
-from xml.dom import minidom
+from lxml import etree
+
+DC_NAMESPACE = 'http://purl.org/dc/elements/1.1/'
+EXCERPT_NAMESPACE = 'http://wordpress.org/export/1.2/excerpt/'
+CONTENT_NAMESPACE = 'http://purl.org/rss/1.0/modules/content/'
+WFW_NAMESPACE = 'http://wellformedweb.org/CommentAPI/'
+WP_NAMESPACE = 'http://wordpress.org/export/1.2/'
+
+DC = '{%s}' % DC_NAMESPACE
+EXCERPT = '{%s}' % EXCERPT_NAMESPACE
+CONTENT = '{%s}' % CONTENT_NAMESPACE
+WFW = '{%s}' % WFW_NAMESPACE
+WP = '{%s}' % WP_NAMESPACE
 
 def to_wp_date(dt: datetime) -> str:
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
-
 def to_pubDate_format(dt: datetime) -> str:
     return dt.strftime('%a, %d %b %Y %H:%M:%S %z')
-
-
-def cdata(text=''):
-    element = ET.Element('![CDATA[')
-    element.text = text
-    return element
-
 
 def main(in_dir: str, out_dir: str):
     posts_csv = os.path.join(in_dir, 'posts.csv')
@@ -30,14 +34,15 @@ def main(in_dir: str, out_dir: str):
         reader = csv.DictReader(file)
         posts = list(reader)
 
-    wxr_root = ET.Element('rss', {'version': '2.0'})
-    wxr_root.set('xmlns:excerpt', 'http://wordpress.org/export/1.2/excerpt/')
-    wxr_root.set('xmlns:content', 'http://purl.org/rss/1.0/modules/content/')
-    wxr_root.set('xmlns:wfw', 'http://wellformedweb.org/CommentAPI/')
-    wxr_root.set('xmlns:dc', 'http://purl.org/dc/elements/1.1/')
-    wxr_root.set('xmlns:wp', 'http://wordpress.org/export/1.2/')
+    wxr_root = etree.Element('rss', version='2.0', nsmap={
+        'excerpt': EXCERPT_NAMESPACE,
+        'content': CONTENT_NAMESPACE,
+        'wfw': WFW_NAMESPACE,
+        'dc': DC_NAMESPACE,
+        'wp': WP_NAMESPACE,
+    })
 
-    channel = ET.SubElement(wxr_root, 'channel')
+    channel = etree.SubElement(wxr_root, 'channel')
 
     for post in posts:
         post_id = post['post_id']
@@ -69,37 +74,35 @@ def main(in_dir: str, out_dir: str):
                 # img['src'] = img_path
 
             content = str(soup)
+            escaped_content = html.escape(content)
 
-            # Create the item element for the post
-            item = ET.SubElement(channel, 'item')
-            ET.SubElement(item, 'title').text = title
-            ET.SubElement(item, 'link').text = f"https://example.com/posts/{post_id}"
-            ET.SubElement(item, 'dc:creator').text = ''
-            ET.SubElement(item, 'guid', {'isPermaLink': 'false'}).text = post_id
-            ET.SubElement(item, 'description')
-            subEl = ET.SubElement(item, 'content:encoded')
-            subEl.append(cdata(content))
-            ET.SubElement(item, 'excerpt:encoded')
-            ET.SubElement(item, 'pubDate').text = to_pubDate_format(post_date_ja)
-            ET.SubElement(item, 'wp:post_date').text = cdata(to_wp_date(post_date_ja))
-            ET.SubElement(item, 'wp:post_date_gmt').text = cdata(to_wp_date(post_date))
-            ET.SubElement(item, 'wp:post_modified').text = cdata(to_wp_date(post_date_ja))
-            ET.SubElement(item, 'wp:post_modified_gmt').text = cdata(to_wp_date(post_date))
-            ET.SubElement(item, 'wp:comment_status').text = cdata('open')
-            ET.SubElement(item, 'wp:ping_status').text = cdata('open')
-            ET.SubElement(item, 'wp:post_name').text = cdata(quote(post_id))
-            ET.SubElement(item, 'wp:status').text = 'publish'
-            ET.SubElement(item, 'wp:post_parent').text = '0'
-            ET.SubElement(item, 'wp:menu_order').text = '0'
-            ET.SubElement(item, 'wp:post_type').text = cdata('post')
-            ET.SubElement(item, 'wp:post_password').text = cdata('')
-            ET.SubElement(item, 'wp:is_sticky').text = '0'
+            item = etree.SubElement(channel, 'item')
+            etree.SubElement(item, 'title').text = title
+            etree.SubElement(item, 'link').text = f"https://example.com/posts/{post_id}"
+            etree.SubElement(item, DC + 'creator').text = ''
+            etree.SubElement(item, 'guid', isPermaLink='false').text = post_id
+            etree.SubElement(item, 'description')
+            etree.SubElement(item, CONTENT + 'encoded').text = etree.CDATA(escaped_content)
+            etree.SubElement(item, EXCERPT + 'encoded')
+            etree.SubElement(item, 'pubDate').text = to_pubDate_format(post_date_ja)
+            etree.SubElement(item, WP + 'post_date').text = etree.CDATA(to_wp_date(post_date_ja))
+            etree.SubElement(item, WP + 'post_date_gmt').text = etree.CDATA(to_wp_date(post_date))
+            etree.SubElement(item, WP + 'post_modified').text = etree.CDATA(to_wp_date(post_date_ja))
+            etree.SubElement(item, WP + 'post_modified_gmt').text = etree.CDATA(to_wp_date(post_date))
+            etree.SubElement(item, WP + 'comment_status').text = etree.CDATA('open')
+            etree.SubElement(item, WP + 'ping_status').text = etree.CDATA('open')
+            etree.SubElement(item, WP + 'post_name').text = etree.CDATA(quote(post_id))
+            etree.SubElement(item, WP + 'status').text = etree.CDATA('publish')
+            etree.SubElement(item, WP + 'post_parent').text = '0'
+            etree.SubElement(item, WP + 'menu_order').text = '0'
+            etree.SubElement(item, WP + 'post_type').text = etree.CDATA('post')
+            etree.SubElement(item, WP + 'post_password').text = etree.CDATA('')
+            etree.SubElement(item, WP + 'is_sticky').text = '0'
 
-
-    wxr_string = minidom.parseString(ET.tostring(wxr_root)).toprettyxml(indent='  ')
+    wxr_string = etree.tostring(wxr_root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
 
     output_xml = os.path.join(out_dir, 'wordpress_export.xml')
-    with open(output_xml, 'w') as file:
+    with open(output_xml, 'wb') as file:
         file.write(wxr_string)
 
 if __name__ == '__main__':
