@@ -2,9 +2,26 @@ import argparse
 import csv
 import os
 import requests
+import pytz
+from urllib.parse import quote
+from datetime import datetime
 from bs4 import BeautifulSoup
 from xml.etree import ElementTree as ET
 from xml.dom import minidom
+
+def to_wp_date(dt: datetime) -> str:
+    return dt.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def to_pubDate_format(dt: datetime) -> str:
+    return dt.strftime('%a, %d %b %Y %H:%M:%S %z')
+
+
+def cdata(text=''):
+    element = ET.Element('![CDATA[')
+    element.text = text
+    return element
+
 
 def main(in_dir: str, out_dir: str):
     posts_csv = os.path.join(in_dir, 'posts.csv')
@@ -25,7 +42,8 @@ def main(in_dir: str, out_dir: str):
     for post in posts:
         post_id = post['post_id']
         title = post['title']
-        post_date = post['post_date']
+        post_date = datetime.fromisoformat(post['post_date'])
+        post_date_ja = post_date.astimezone(pytz.timezone('Asia/Tokyo'))
 
         html_file = os.path.join(in_dir, f"posts/{post_id}.html")
 
@@ -56,15 +74,27 @@ def main(in_dir: str, out_dir: str):
             item = ET.SubElement(channel, 'item')
             ET.SubElement(item, 'title').text = title
             ET.SubElement(item, 'link').text = f"https://example.com/posts/{post_id}"
-            ET.SubElement(item, 'pubDate').text = post_date
-            ET.SubElement(item, 'dc:creator').text = 'Author Name'
+            ET.SubElement(item, 'dc:creator').text = ''
             ET.SubElement(item, 'guid', {'isPermaLink': 'false'}).text = post_id
             ET.SubElement(item, 'description')
-            ET.SubElement(item, 'content:encoded').text = content
-            ET.SubElement(item, 'wp:post_date').text = post_date
-            ET.SubElement(item, 'wp:post_name').text = post_id
+            subEl = ET.SubElement(item, 'content:encoded')
+            subEl.append(cdata(content))
+            ET.SubElement(item, 'excerpt:encoded')
+            ET.SubElement(item, 'pubDate').text = to_pubDate_format(post_date_ja)
+            ET.SubElement(item, 'wp:post_date').text = cdata(to_wp_date(post_date_ja))
+            ET.SubElement(item, 'wp:post_date_gmt').text = cdata(to_wp_date(post_date))
+            ET.SubElement(item, 'wp:post_modified').text = cdata(to_wp_date(post_date_ja))
+            ET.SubElement(item, 'wp:post_modified_gmt').text = cdata(to_wp_date(post_date))
+            ET.SubElement(item, 'wp:comment_status').text = cdata('open')
+            ET.SubElement(item, 'wp:ping_status').text = cdata('open')
+            ET.SubElement(item, 'wp:post_name').text = cdata(quote(post_id))
             ET.SubElement(item, 'wp:status').text = 'publish'
-            ET.SubElement(item, 'wp:post_type').text = 'post'
+            ET.SubElement(item, 'wp:post_parent').text = '0'
+            ET.SubElement(item, 'wp:menu_order').text = '0'
+            ET.SubElement(item, 'wp:post_type').text = cdata('post')
+            ET.SubElement(item, 'wp:post_password').text = cdata('')
+            ET.SubElement(item, 'wp:is_sticky').text = '0'
+
 
     wxr_string = minidom.parseString(ET.tostring(wxr_root)).toprettyxml(indent='  ')
 
@@ -72,15 +102,14 @@ def main(in_dir: str, out_dir: str):
     with open(output_xml, 'w') as file:
         file.write(wxr_string)
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                        prog='substack_to_note',
+                        description='Convert Substack export to WordPress WXR format'
+    )
 
-parser = argparse.ArgumentParser(
-                    prog='substack_to_note',
-                    description='Convert Substack export to WordPress WXR format'
-)
+    parser.add_argument('-i', '--in-dir', help='Input directory containing Substack export files')
+    parser.add_argument('-o', '--out-dir', help='Output directory for WordPress WXR file and images')
 
-parser.add_argument('-i', '--in-dir', help='Input directory containing Substack export files')
-parser.add_argument('-o', '--out-dir', help='Output directory for WordPress WXR file and images')
-
-args = parser.parse_args()
-main(args.in_dir, args.out_dir)
-
+    args = parser.parse_args()
+    main(args.in_dir, args.out_dir)
