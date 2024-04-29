@@ -12,10 +12,11 @@ It will also download any images inside the posts and save them in the output di
 1. Install Python.
 1. Clone the repository.
     ```sh
-    git clone 
+    git clone git@github.com:diskshima/substack-to-note.git
     ```
 1. Install the required packages.
     ```sh
+    cd substack-to-note
     pip install -r requirements.txt
     ```
 
