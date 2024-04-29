@@ -43,3 +43,7 @@ A few things to keep in mind if you want to contribute to this project:
     ```sh
     poetry export -f requirements.txt --output requirements.txt
     ```
+- Please run the tests before committing.
+    ```sh
+    poetry run python test.py
+    ```
