@@ -1,6 +1,5 @@
 import argparse
 import csv
-import html
 import os
 import pytz
 import requests
@@ -81,7 +80,6 @@ def main(in_dir: str, out_dir: str):
                 # img['src'] = img_path
 
             content = str(soup)
-            escaped_content = html.escape(content)
 
             item = etree.SubElement(channel, "item")
             etree.SubElement(item, "title").text = title
@@ -89,9 +87,7 @@ def main(in_dir: str, out_dir: str):
             etree.SubElement(item, DC + "creator").text = ""
             etree.SubElement(item, "guid", isPermaLink="false").text = post_id
             etree.SubElement(item, "description")
-            etree.SubElement(item, CONTENT + "encoded").text = etree.CDATA(
-                escaped_content
-            )
+            etree.SubElement(item, CONTENT + "encoded").text = etree.CDATA(content)
             etree.SubElement(item, EXCERPT + "encoded")
             etree.SubElement(item, "pubDate").text = to_pubDate_format(post_date_ja)
             etree.SubElement(item, WP + "post_date").text = etree.CDATA(

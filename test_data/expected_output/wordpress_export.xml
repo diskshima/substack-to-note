@@ -7,7 +7,7 @@
       <dc:creator></dc:creator>
       <guid isPermaLink="false">test01</guid>
       <description/>
-      <content:encoded><![CDATA[&lt;p&gt;これはテストです。&lt;/p&gt;]]></content:encoded>
+      <content:encoded><![CDATA[<p>これはテストです。</p>]]></content:encoded>
       <excerpt:encoded/>
       <pubDate>Sun, 21 Apr 2024 15:53:11 +0900</pubDate>
       <wp:post_date><![CDATA[2024-04-21 15:53:11]]></wp:post_date>
