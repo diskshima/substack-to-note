@@ -108,7 +108,7 @@ def main(in_dir: str, out_dir: str):
             )
             etree.SubElement(item, WP + "comment_status").text = etree.CDATA("open")
             etree.SubElement(item, WP + "ping_status").text = etree.CDATA("open")
-            etree.SubElement(item, WP + "post_name").text = etree.CDATA(quote(post_id))
+            etree.SubElement(item, WP + "post_name").text = etree.CDATA(quote(title))
             etree.SubElement(item, WP + "status").text = etree.CDATA("publish")
             etree.SubElement(item, WP + "post_parent").text = "0"
             etree.SubElement(item, WP + "menu_order").text = "0"
